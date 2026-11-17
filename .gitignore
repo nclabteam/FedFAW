@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Environments
+.env
+.venv
+env/
+venv/
+
+# Downloaded datasets (regenerate via mak/utils/data.py loaders)
+/datasets/
+
+# Literature corpus (large PDF collection, not source)
+/docs/
+
+# Experiment outputs (logs, results, generated artifacts)
+/out/
+
+# Model checkpoints / weights (except the shared pretrained ResNet-18)
+*.pt
+*.pth
+*.ckpt
+!resnet_18_tiny_imagenet_40.pt
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Generated result summaries
+summary_results*.csv
+

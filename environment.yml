@@ -1,0 +1,13 @@
+# Conda environment for FedFAW (tested: Linux x86_64, Python 3.9, CUDA 11.8).
+#   conda env create -f environment.yml
+#   conda activate fedfaw
+# Conda provides Python only; all packages come from requirements.txt
+# (torch/torchvision cu118 wheels via the extra index URL listed there).
+name: fedfaw
+channels:
+  - defaults
+dependencies:
+  - python=3.9
+  - pip
+  - pip:
+      - -r requirements.txt

@@ -1,0 +1,21 @@
+# Tested with Python 3.9 and CUDA 11.8
+--extra-index-url https://download.pytorch.org/whl/cu118
+torch==2.7.1
+torchvision==0.22.1
+torchsummary==1.5.1
+numpy==1.26.4
+scipy==1.13.1
+scikit-learn==1.6.1
+pandas==2.3.3
+matplotlib==3.9.4
+pillow==11.3.0
+PyYAML==6.0.3
+tqdm==4.70.0
+requests==2.32.5
+nngeometry==0.3              # Fisher information (FedFisher, Fisher Merge, FedFAW)
+bayesian-optimization==3.3.0 # FedFAW
+POT==0.9.7.post1             # OTFusion
+lapsolver==1.1.0             # PFNM
+laplace-torch==0.2.2.2       # FedBEns
+backpack-for-pytorch==1.7.1  # FedBEns (laplace-torch backend)
+torchmetrics==1.8.2          # optional: FID metric for validation-data shift analysis

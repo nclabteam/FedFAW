@@ -1,0 +1,144 @@
+---
+# config
+
+common:
+  dataset : cifar10 # data_set = data set used  one among ['cifar10', 'cifar100', 'mnist', 'fashion_mnist','celeba','stl', 'uci_har']
+  partition_scheme : dirichlet # how client data is split, one among ['dirichlet', 'iid', 'natural']. 'natural' is only supported for dataset uci_har (one client per real subject, requires num_clients: 30)
+  dirichlet_alpha : 0.3 #dirichlet concentration parameter (only used if partition_scheme is 'dirichlet')
+  target_acc : 0.95
+  model :  FedNet #one among ['MLP','ConvNet','LeNet','AlexNet','AlexNetBN','VGG11','VGG11BN','ResNet18','FedNet']
+  pretrained : False
+  pretrained_path : "./resnet_18_tiny_imagenet_40.pt"
+  optimizer : sgd # one among [sgd,adam]
+  sgd_momentum : 0.9  
+  seed : 0  #0, 13, 44
+  save_log : True
+  save_model : False
+  device : 1 #[-1, 0,...] -1 for cpu otherwise the gpu index
+  base_dir : ./out/
+  verbose : False
+
+server:
+  num_rounds : 1
+  fraction_fit : 1.0
+  num_clients : 5  # total number of clients participating in training
+  strategy : fedfaw_nofisher  #[fedavg, fedprox, scaffold, otfusion, regmean, pfnm, dense, fisher_merge, fedlpa, fedfisher, fedbens, fedfaw, fedfaw_nofisher (= FedFAW w/o Fisher)]
+
+client:
+  epochs : 32
+  train_batch_size : 64
+  test_batch_size : 64
+  lr: 0.01 #  [0.0001,0.001,0.005,0.01,0.1,0.2]
+  augmentation: True
+  evaluate: False
+
+val_data_shift:
+  shift_type: domain # None means IID without any change otherwise (label, covariate, domain)
+  calculate_shift_metrics: True # Mathematically models Spearman Rho & Fisher Distance if set to True
+  label_shift_dir_alpha : 0.01 # only used if label shift is selected
+  covariate_shift_type : brightness # only used if covariate shift is selected or brightness, contrast, noise
+  covariate_shift_strength : 0.5 # only used if covariate shift is selected
+  domain_shift_dataset: cinic10 # only used if domain shift is selected and can be any compatable dataset
+
+noise:  # prority given to command line arguments
+  enable : False
+  sigma : 0.5
+  group_size : 50
+  method : sum #[mean or sum]
+  dsa_strategy : none #color_crop_cutout_flip_scale_rotate or none
+
+fedprox:
+  proximal_mu : 0.01
+
+fisher:
+  val_samples : 500
+  fisher_type : 'diagonal' # 'diagonal' or 'kfac'
+  server_lr : 0.01
+  server_iterations : 2000
+  lambda : 0
+
+fedfaw:
+  use_synthetic_val : False # If True, uses DENSE-style generator for data-free validation
+  synthetic_val_batches : 4
+  synthetic_val_iters : 1100
+  init_points : 30     # Number of random points to start search
+  n_iter : 75          # Number of Bayesian optimization steps
+  acquisition_fn : 'ucb' # 'ei', 'poi', or 'ucb'
+  kappa : 5         # Exploitation/Exploration balance for UCB (higher = more exploration)
+  xi : 0.01             # Minimum improvement for EI/POI
+
+otfusion:
+  exact: True
+  ground-metric: 'euclidean'
+  reg: 1e-7
+  not_squared: True
+  handle_skips: False
+  correction: False
+  past_correction: False
+  proper_marginals: False
+  pivot: 0
+
+regmean:
+  a_range: [0.1, 0.9]
+
+pfnm:
+  sigma: 1.0
+  sigma0: 1.0
+  gamma: 7.0
+
+dense:
+  nz: 256
+  iterations: 30
+  lr_g: 0.001
+  synthesis_batch_size: 256
+  sample_batch_size: 256
+  adv: 1.0 # official DENSE README value
+  bn: 1.0
+  oh: 1.0
+  epochs: 20 # official DENSE README uses 200 (~20x slower)
+  T: 20
+  lr_dense: 0.005 # official DENSE README value
+  grad_clip: 5.0 # max grad-norm in DENSE KD; prevents NaN/dead-ReLU divergence on BN-free nets (0 = off)
+  student_init: fedavg # start KD from the FedAvg model; official DENSE uses a fresh model (random)
+  ensemble_weighting: uniform # official DENSE averages client logits equally; 'samples' weights by data size
+
+fedlpa:
+  eta: 1.0
+  coordinator: 0.0001
+  momentum: 0.9
+  stat_decay: 0.95
+  damping: 0.001
+  kl_clip: 0.01
+  weight_decay: 0.003
+  TCov: 1
+  TScal: 10
+  TInv: 100
+  weight_decay: 1e-05
+
+fedbens:
+  # Fixed at 3 uniformly across all FedBEns experiments in this evaluation
+  # pass (not just ResNet18) -- see configs/base.yaml for the full rationale
+  # (GPU memory ceiling + consistency across models/datasets).
+  n_mixtures: 3
+  local_ens: 1
+  temperature: 0.1
+  # Lowered from 0.1 (official FedBEns default): on low-class-count tasks (e.g. celeba, num_classes=2)
+  # local models saturate to near-0/1 confidence quickly, collapsing the
+  # GGN/Fisher curvature toward singular and making laplace-torch's KFAC
+  # eigendecomposition fail ("SYMEIG: adding jitter failed", min eigenvalue
+  # 0.0). A smaller prior_cov (larger prior_precision) adds more diagonal
+  # regularization to the curvature before eigendecomposition.
+  prior_cov: 0.01
+  lr_opt: 0.001
+  steps_opt: 300
+  val_at_server: True
+  # Local training has no gradient clipping upstream (matches the official
+  # implementation), so a client with a small/skewed data shard (e.g. a
+  # large num_clients sweep) can diverge to NaN/Inf weights, which crashes
+  # laplace-torch's KFAC eigendecomposition (CUSOLVER_STATUS_EXECUTION_FAILED,
+  # then an unrecoverable illegal memory access right after). grad_clip_norm
+  # caps gradient norm during local SGD to prevent that divergence at its
+  # source; max_train_retries retries a diverged ensemble member from a
+  # fresh random re-init before giving up and skipping it.
+  grad_clip_norm: 5.0
+  max_train_retries: 3
